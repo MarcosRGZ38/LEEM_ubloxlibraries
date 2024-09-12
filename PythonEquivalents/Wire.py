@@ -30,7 +30,7 @@ class TwoWire:
           self.activeMode = 0x01
 
 
-     def begin():
+     def begin(args = None):
           obj = TwoWire()
           # iniciar bus
           try:
