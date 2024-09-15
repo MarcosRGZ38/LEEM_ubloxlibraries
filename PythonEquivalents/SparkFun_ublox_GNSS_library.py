@@ -1,7 +1,5 @@
 
-import Wire as i2c
-import u_blox_structs
-import u_blox_config_keys
+import PythonEquivalents.Wire as Wire
 from enum import Enum
 import struct
 
@@ -556,20 +554,21 @@ class SFE_UBLOX_GNSS:
     sfe_ublox_sentence_types_e = Enum('currentSentence', ['SFE_UBLOX_SENTENCE_TYPE_NONE','SFE_UBLOX_SENTENCE_TYPE_NMEA','SFE_UBLOX_SENTENCE_TYPE_UBX','SFE_UBLOX_SENTENCE_TYPE_RTCM'])
 
 
-    # bool begin(TwoWire &wirePort = Wire, uint8_t deviceAddress = 0x42, uint16_t maxWait = defaultMaxWait, bool assumeSuccess = false); // Returns true if module is detected
+
     def begin():
-        wire = i2c.TwoWire()
+        bus = Wire.TwoWire()
         try:
-            wire.begin()
+            bus.begin()
             return True
         except Exception as ex:
+            print(f"Error: {ex}")
             return False
 
 
 
 
 
-    def setI2COutput(self,bus, address, output_protocol):
+    def setI2COutput(output_protocol):
 
         # Configure the I2C port to output the specified protocol(s)
 
@@ -595,19 +594,18 @@ class SFE_UBLOX_GNSS:
                 raise ValueError(f"Invalid protocol: {protocol}")
 
         # Configure the I2C port using smbus
-        bus = i2c.smbus.SMBus(bus)
-        bus.write_byte(address, 0x00)  # CFG_PRT (I/O protocol configuration)
-        bus.write_byte(address, protocol_code)
+        bus = Wire.smbus.SMBus(1)
+        bus.write_byte(Wire.TwoWire.rpiAdress, 0x00)  # CFG_PRT (I/O protocol configuration)
+        bus.write_byte(Wire.TwoWire.rpiAdress, protocol_code)
 
 
     def setNavigationFrecuency(self, freq):
         self.navigationFrecuency = freq
 
 
-    def getPVT(self, bus, adress):
-        self.maxwait = self.defaultMaxWait
-        self.pvtBus = bus
-        self.pvtAdress = adress
+    def getPVT(self):
+        pvtAdress = Wire.TwoWire.rpiAdress
+
         # Get the current PVT (position, velocity, time) data from the device
         #Get the current PVT (position, velocity, time) data from the device
 
@@ -622,11 +620,12 @@ class SFE_UBLOX_GNSS:
             # `velocity_down`: Velocity in meters per second (float)
             # `time`: Time in seconds since the epoch (int)
         # Define the PVT data structure
+
         PVT_DATA_STRUCT = struct.Struct("<iiiiiii")
 
         # Read the PVT data from the device using smbus
-        Pvtbus = i2c.smbus.SMBus(bus)
-        pvt_data = Pvtbus.read_i2c_block_data(adress, 0x00, 28)  # NAV_PVT (PVT data)
+        Pvtbus = Wire.smbus.SMBus(1)
+        pvt_data = Pvtbus.read_i2c_block_data(pvtAdress, Wire.TwoWire.gpsReadRegister, 28)  # NAV_PVT (PVT data)
 
         # Unpack the PVT data
         pvt_data_unpacked = PVT_DATA_STRUCT.unpack(bytes(pvt_data))
@@ -654,6 +653,7 @@ class SFE_UBLOX_GNSS:
     def getLonguitude(self):
         self.maxwait = self.defaultMaxWait
         return self.pvt_data_dictionary.get('longitude')
+
     def getAltitude(self):
         self.maxwait = self.defaultMaxWait
         return self.pvt_data_dictionary.get('altitude')

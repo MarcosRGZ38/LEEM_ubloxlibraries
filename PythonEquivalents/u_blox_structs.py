@@ -1,8 +1,5 @@
 
 
-if '__u_blox_structs_h__' not in locals():
-    __ublox_structs_h_ = None
-
 from ast import List
 from inspect import ismodule
 from json import JSONDecoder
